@@ -54,34 +54,23 @@ def load_records(table, results, symbol):
         create_table(table) 
         cur = conn.cursor()
         try:
-            for r in results:
-                open_price = r["1. open"]
-                high = r["2. high"]
-                low = r["3. low"]
-                close = r["4. close"]
-                volume = r["5. volume"]
-                date = r["date"]
-
-                merge_sql = f"""
-                MERGE INTO {table} t
-                USING (SELECT %s AS symbol,
-                              %s AS open,
-                              %s AS high,
-                              %s AS low,
-                              %s AS close,
-                              %s AS volume,
-                              TO_DATE(%s) AS date) s
-                ON t.symbol = s.symbol AND t.date = s.date
-                WHEN MATCHED THEN UPDATE SET
-                    t.open = s.open,
-                    t.high = s.high,
-                    t.low = s.low,
-                    t.close = s.close,
-                    t.volume = s.volume
-                WHEN NOT MATCHED THEN INSERT (symbol, open, high, low, close, volume, date)
-                VALUES (s.symbol, s.open, s.high, s.low, s.close, s.volume, s.date)
-                """
-                cur.execute(merge_sql, (symbol, open_price, high, low, close, volume, date))
+            cur.execute(f"TRUNCATE TABLE {table}")
+            rows_to_insert = [
+                (
+                    symbol,
+                    r["1. open"],
+                    r["2. high"],
+                    r["3. low"],
+                    r["4. close"],
+                    r["5. volume"],
+                    r["date"]
+                ) for r in results
+            ]
+            insert_sql = f"""
+                INSERT INTO {table} (symbol, open, high, low, close, volume, date) 
+                VALUES (%s, %s, %s, %s, %s, %s, TO_DATE(%s))
+            """
+            cur.executemany(insert_sql, rows_to_insert)
         finally:
             cur.close()
         conn.commit()
@@ -102,7 +91,7 @@ def count_records(table):
         finally:
             cur.close()
         conn.commit()
-        print(f"Row count: {count}")
+        print(f"Row count in {table}: {count}")
         return count
     except Exception:
         conn.rollback()
@@ -112,7 +101,7 @@ def count_records(table):
 
 
 with DAG(
-    dag_id='Stock_analysis',
+    dag_id='Stock_analysis_Full_Refresh',
     start_date=datetime(2025, 10, 2),
     catchup=False,
     tags=['ETL'],
@@ -122,11 +111,7 @@ with DAG(
     symbol = "NVDA"
 
     results = return_last_90d_price(symbol)
-    load1 = load_records(target_table, results, symbol)
-    print("Records on first run")
-    count1 = count_records(target_table)
-    load2 = load_records(target_table, results, symbol)
-    print("Records on second run")
-    count2 = count_records(target_table)
+    load_data = load_records(target_table, results, symbol)
+    count_data = count_records(target_table)
 
-    results >> load1 >> count1 >> load2 >> count2
+    results >> load_data >> count_data
