@@ -13,10 +13,9 @@ def create_summary_table():
     try:
         cur = conn.cursor()
         try:
-            # 1) Ensure schema exists (single statement)
             cur.execute("CREATE SCHEMA IF NOT EXISTS analytics")
 
-            # 2) Validate duplicates BEFORE publishing (read-only SELECT)
+            #Validate duplicates before publishing
             cur.execute("""
                 SELECT st.sessionId, COUNT(*) AS cnt
                 FROM raw.user_session_channel uc
@@ -29,7 +28,7 @@ def create_summary_table():
             if duplicates:
                 raise Exception(f"Duplicate records found: {duplicates}")
 
-            # 3) Publish table using CTAS (single statement)
+            # 3) create table using CTAS
             cur.execute("""
                 CREATE OR REPLACE TABLE analytics.session_summary AS
                 SELECT
