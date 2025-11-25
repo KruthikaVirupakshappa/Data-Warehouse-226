@@ -1,0 +1,12 @@
+
+version: 2
+
+sources:
+  - name: raw
+    database: USER_DB_LYNX
+    schema: raw
+    description: "Schema that stores raw data loaded via Airflow ETL"
+    tables:
+      - name: stock_prices
+        identifier: stock_prices
+        description: "Raw stock price data including symbol, open, high, low, close, volume, and date"

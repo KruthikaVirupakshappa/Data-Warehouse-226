@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: fct_stock_indicators
+    description: "Fact table containing moving averages and daily changes"
+    columns:
+      - name: symbol
+        tests: [not_null]
+      
+      - name: date
+        tests: [not_null]
+        
+      - name: close
+        description: "Closing price for the day"
+        tests: [not_null]
+
+      - name: prev_close
+        description: "Previous day's closing price"
+
+      - name: day_change
+        description: "Difference between Close and Prev_Close"
+
+      - name: sma_20
+        description: "20-day Simple Moving Average"
+
+      - name: sum_50
+        description: "50-day Rolling Sum of Close Price"
+      
+      - name: volume
+        description: "Number of shares traded"
+        tests: [not_null]
